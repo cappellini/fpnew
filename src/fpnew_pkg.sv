@@ -1,4 +1,3 @@
-
 // Copyright 2019 ETH Zurich and University of Bologna.
 //
 // Copyright and related rights are licensed under the Solderpad Hardware
@@ -477,7 +476,6 @@ package fpnew_pkg;
     return res;
   endfunction
 
-
   //Returns how many DOTP lanes should be generated
   function automatic int num_dotp_lanes(int unsigned width, 
                                         fmt_logic_t cfg);
@@ -513,9 +511,6 @@ package fpnew_pkg;
     };
     return res;
   endfunction
-
-  
-
 
   // Returns a mask of active INT formats that are present in lane lane_no of a CONV slice
   function automatic ifmt_logic_t get_conv_lane_int_formats(int unsigned width,

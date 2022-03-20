@@ -18,6 +18,7 @@
 `include "common_cells/registers.svh"
 
 module fpnew_sdotp_multi_wrapper #(
+  parameter int unsigned             LaneWidth   = 64,
   parameter fpnew_pkg::fmt_logic_t   FpFmtConfig = '1,
   parameter int unsigned             NumPipeRegs = 0,
   parameter fpnew_pkg::pipe_config_t PipeConfig  = fpnew_pkg::BEFORE,
@@ -29,7 +30,7 @@ module fpnew_sdotp_multi_wrapper #(
   localparam fpnew_pkg::fmt_logic_t FpDstFmtConfig = fpnew_pkg::get_dotp_dst_fmts(FpSrcFmtConfig),
   localparam int                     SRC_WIDTH     = fpnew_pkg::max_fp_width(FpSrcFmtConfig),
   localparam int                     DST_WIDTH     = 2*fpnew_pkg::max_fp_width(FpSrcFmtConfig), // do not change, current assumption of sdotpex_multi
-  localparam int                     OPERAND_WIDTH = 4*fpnew_pkg::max_fp_width(FpSrcFmtConfig), // do not change, current assumption of sdotpex_multi
+  localparam int                     OPERAND_WIDTH = LaneWidth,
   localparam int unsigned NUM_FORMATS              = fpnew_pkg::NUM_FP_FORMATS
 ) (
   input logic                      clk_i,
@@ -111,7 +112,7 @@ module fpnew_sdotp_multi_wrapper #(
       if (op_i == fpnew_pkg::VSUM) begin
         local_src_fmt_operand_a[fmt][FP_WIDTH_DST_MIN-1:0] = tmp_operands[0][FP_WIDTH_DST_MIN-1:0];
         local_src_fmt_operand_b[fmt][FP_WIDTH_MIN-1:0]     = '1;
-        local_src_fmt_operand_c[fmt][FP_WIDTH_DST_MIN-1:0] = tmp_operands[2][FP_WIDTH_DST_MIN-1:0];
+        local_src_fmt_operand_c[fmt][FP_WIDTH_DST_MIN-1:0] = tmp_operands[1][FP_WIDTH_DST_MIN-1:0];
         local_src_fmt_operand_d[fmt][FP_WIDTH_MIN-1:0]     = '1;
       end else begin
         local_src_fmt_operand_a[fmt][FP_WIDTH_MIN-1:0] = tmp_operands[0][FP_WIDTH_MIN-1:0];

@@ -61,6 +61,7 @@ module fpnew_opgroup_multifmt_slice #(
   localparam int unsigned MAX_FP_WIDTH   = fpnew_pkg::max_fp_width(FpFmtConfig);
   localparam int unsigned MAX_INT_WIDTH  = fpnew_pkg::max_int_width(IntFmtConfig);
   localparam int unsigned NUM_LANES = fpnew_pkg::max_num_lanes(Width, FpFmtConfig, 1'b1);
+  localparam int unsigned NUM_DOTP_LANES = fpnew_pkg::num_dotp_lanes(Width, FpFmtConfig);
   localparam int unsigned NUM_INT_FORMATS = fpnew_pkg::NUM_INT_FORMATS;
   // We will send the format information along with the data
   localparam int unsigned FMT_BITS =
@@ -158,7 +159,7 @@ module fpnew_opgroup_multifmt_slice #(
     localparam fpnew_pkg::fmt_logic_t DOTP_FORMATS =
         fpnew_pkg::get_dotp_lane_formats(Width, FpFmtConfig, LANE);
     localparam int unsigned DOTP_MAX_FMT_WIDTH = fpnew_pkg::max_fp_width(DOTP_FORMATS);
-    localparam int unsigned DOTP_WIDTH = 2*DOTP_MAX_FMT_WIDTH;
+    localparam int unsigned DOTP_WIDTH = fpnew_pkg::minimum(2*DOTP_MAX_FMT_WIDTH, Width);
 
     // Lane parameters from Opgroup
     localparam fpnew_pkg::fmt_logic_t LANE_FORMATS = (OpGroup == fpnew_pkg::CONV) ? CONV_FORMATS :
@@ -170,7 +171,7 @@ module fpnew_opgroup_multifmt_slice #(
     logic [LANE_WIDTH-1:0] local_result; // lane-local results
 
     // Generate instances only if needed, lane 0 always generated
-    if ((lane == 0) || (EnableVectors & !(OpGroup == fpnew_pkg::DOTP && (lane > 3)) )) begin : active_lane
+    if ((lane == 0) || (EnableVectors && !((OpGroup == fpnew_pkg::DOTP) && (lane >= NUM_DOTP_LANES)) )) begin : active_lane
       logic in_valid, out_valid, out_ready; // lane-local handshake
 
       logic [NUM_OPERANDS-1:0][LANE_WIDTH-1:0] local_operands;  // lane-local oprands
@@ -187,7 +188,7 @@ module fpnew_opgroup_multifmt_slice #(
 
         if (OpGroup == fpnew_pkg::DOTP) begin
           for (int unsigned i = 0; i < NUM_OPERANDS; i++) begin
-            local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i); // expanded format is twice the width of src_fmt
+            local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(dst_fmt_i); // expanded format is twice the width of src_fmt (the width of dst_fmt in general? should also work for VSUM)
           end
         end else if (OpGroup == fpnew_pkg::CONV) begin // override operand 0 for some conversions
           // Source is an integer
@@ -242,6 +243,7 @@ module fpnew_opgroup_multifmt_slice #(
         );
       end else if (OpGroup == fpnew_pkg::DOTP) begin : lane_instance
         fpnew_sdotp_multi_wrapper #(
+          .LaneWidth   ( LANE_WIDTH           ),
           .FpFmtConfig ( LANE_FORMATS         ), // fp64 and fp32 not supported
           .NumPipeRegs ( NumPipeRegs          ),
           .PipeConfig  ( PipeConfig           ),
@@ -493,10 +495,15 @@ module fpnew_opgroup_multifmt_slice #(
   // ------------
   assign {result_is_cpk, result_fmt_is_int, result_is_vector, result_fmt, result_is_vsum} = lane_aux[0];
 
-  assign result_o = result_fmt_is_int ? ifmt_slice_result[result_fmt]                   :
-                    result_is_cpk     ? fmt_conv_cpk_result[result_fmt][result_vec_op]  :
-                    result_is_vsum    ? {{(Width/2){1'b1}}, {fmt_slice_result[result_fmt][Width/2-1:0]}} :
-                                        fmt_slice_result[result_fmt];
+  // assign result_o = result_fmt_is_int ? ifmt_slice_result[result_fmt]                   :
+  //                   result_is_cpk     ? fmt_conv_cpk_result[result_fmt][result_vec_op]  :
+  //                   result_is_vsum    ? {{(Width/2){1'b1}}, {fmt_slice_result[result_fmt][Width/2-1:0]}} :
+  //                                       fmt_slice_result[result_fmt];
+
+
+    assign result_o = result_fmt_is_int ? ifmt_slice_result[result_fmt]                   :
+                      result_is_cpk     ? fmt_conv_cpk_result[result_fmt][result_vec_op]  :
+                                          fmt_slice_result[result_fmt];
 
   assign extension_bit_o = lane_ext_bit[0]; // don't care about upper ones
   assign tag_o           = lane_tags[0];    // don't care about upper ones

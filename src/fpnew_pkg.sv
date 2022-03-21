@@ -489,10 +489,10 @@ package fpnew_pkg;
                                                        int unsigned lane_no);
     automatic fmt_logic_t res;
     automatic fmt_logic_t mask;
-    int unsigned nr_16bit_lanes = (cfg[FP32]) ? (width / 32) : 0;
+    int unsigned nr_16to32bit_lanes = (cfg[FP32]) ? (width / 32) : 0;
 
-    if(lane_no < nr_16bit_lanes) mask = 6'b111111;  //lane should be 16-bit -> 32-bit
-    else                         mask = 6'b001111;  //lane should be  8-bit -> 16-bit
+    if(lane_no < nr_16to32bit_lanes) mask = 6'b111111;  //lane should be 16-bit -> 32-bit
+    else                             mask = 6'b001111;  //lane should be  8-bit -> 16-bit
 
     res = cfg & mask;
 
@@ -500,14 +500,14 @@ package fpnew_pkg;
   endfunction
 
   // Returns the dotp dest FP format string
-  function automatic fmt_logic_t get_dotp_dst_fmts(fmt_logic_t src_cfg);
+  function automatic fmt_logic_t get_dotp_dst_fmts(fmt_logic_t cfg, fmt_logic_t src_cfg);
     automatic fmt_logic_t res;
-    res = { src_cfg[FP16] || src_cfg[FP16ALT], 
+    res = { cfg[FP32] && (src_cfg[FP16] || src_cfg[FP16ALT]), 
             1'b0,                              //FP64 not supported as dstFmt
-            src_cfg[FP8] || src_cfg[FP8ALT],   
+            cfg[FP16] && (src_cfg[FP8] || src_cfg[FP8ALT]),   
             1'b0,                              //FP8 not supported as dstFmt
-            src_cfg[FP8] || src_cfg[FP8ALT],   
-            1'b0                               //FP8 not supported as dstFmt
+            cfg[FP16ALT] && (src_cfg[FP8] || src_cfg[FP8ALT]),   
+            1'b0                               //FP8ALT not supported as dstFmt
     };
     return res;
   endfunction

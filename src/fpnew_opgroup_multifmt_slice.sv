@@ -96,6 +96,7 @@ module fpnew_opgroup_multifmt_slice #(
   logic [FMT_BITS-1:0] result_fmt;
   logic                result_fmt_is_int, result_is_cpk;
   logic [1:0]          result_vec_op; // info for vectorial results (for packing)
+  logic [Width-1:0]    result_vsum;
 
   // -----------
   // Input Side
@@ -188,7 +189,7 @@ module fpnew_opgroup_multifmt_slice #(
 
         if (OpGroup == fpnew_pkg::DOTP) begin
           for (int unsigned i = 0; i < NUM_OPERANDS; i++) begin
-            local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(dst_fmt_i); // expanded format is twice the width of src_fmt (the width of dst_fmt in general? should also work for VSUM)
+            local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i); // expanded format is twice the width of src_fmt
           end
         end else if (OpGroup == fpnew_pkg::CONV) begin // override operand 0 for some conversions
           // Source is an integer
@@ -495,15 +496,21 @@ module fpnew_opgroup_multifmt_slice #(
   // ------------
   assign {result_is_cpk, result_fmt_is_int, result_is_vector, result_fmt, result_is_vsum} = lane_aux[0];
 
-  // assign result_o = result_fmt_is_int ? ifmt_slice_result[result_fmt]                   :
-  //                   result_is_cpk     ? fmt_conv_cpk_result[result_fmt][result_vec_op]  :
-  //                   result_is_vsum    ? {{(Width/2){1'b1}}, {fmt_slice_result[result_fmt][Width/2-1:0]}} :
-  //                                       fmt_slice_result[result_fmt];
 
+  //TODO clean up
+  logic needs_nan_boxing;
 
-    assign result_o = result_fmt_is_int ? ifmt_slice_result[result_fmt]                   :
-                      result_is_cpk     ? fmt_conv_cpk_result[result_fmt][result_vec_op]  :
+  assign needs_nan_boxing = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(result_fmt)) != Width;
+
+  assign result_vsum = needs_nan_boxing ? {{(Width/2){1'b1}}, fmt_slice_result[result_fmt][Width/2-1:0]} :
                                           fmt_slice_result[result_fmt];
+
+
+  assign result_o = result_fmt_is_int ? ifmt_slice_result[result_fmt]                   :
+                    result_is_cpk     ? fmt_conv_cpk_result[result_fmt][result_vec_op]  :
+                    result_is_vsum    ? result_vsum :
+                                        fmt_slice_result[result_fmt];
+
 
   assign extension_bit_o = lane_ext_bit[0]; // don't care about upper ones
   assign tag_o           = lane_tags[0];    // don't care about upper ones

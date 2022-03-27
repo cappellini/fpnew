@@ -71,8 +71,9 @@ module fpnew_sdotp_multi #(
   input  fpnew_pkg::roundmode_e       rnd_mode_i,
   input  fpnew_pkg::operation_e       op_i,
   input  logic                        op_mod_i,
-  input  fpnew_pkg::fp_format_e       src_fmt_i, // format of op_a, op_b, op_c, op_d
-  input  fpnew_pkg::fp_format_e       dst_fmt_i, // format of the accumulator (op_e) and result
+  input  fpnew_pkg::fp_format_e       src_fmt_i,  // format of op_a, op_c
+  input  fpnew_pkg::fp_format_e       src2_fmt_i, // format of op_b, op_d
+  input  fpnew_pkg::fp_format_e       dst_fmt_i,  // format of the accumulator (op_e) and result
   input  TagType                      tag_i,
   input  AuxType                      aux_i,
   // Input Handshake
@@ -161,6 +162,7 @@ module fpnew_sdotp_multi #(
   logic [SRC_WIDTH-1:0]  operand_d_q;
   logic [DST_WIDTH-1:0]  dst_operands_q;
   fpnew_pkg::fp_format_e src_fmt_q;
+  fpnew_pkg::fp_format_e src2_fmt_q;
   fpnew_pkg::fp_format_e dst_fmt_q;
 
   // Input pipeline signals, index i holds signal after i register stages
@@ -174,6 +176,7 @@ module fpnew_sdotp_multi #(
   fpnew_pkg::operation_e [0:NUM_INP_REGS]                       inp_pipe_op_q;
   logic                  [0:NUM_INP_REGS]                       inp_pipe_op_mod_q;
   fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_src_fmt_q;
+  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_src2_fmt_q;
   fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_dst_fmt_q;
   TagType                [0:NUM_INP_REGS]                       inp_pipe_tag_q;
   AuxType                [0:NUM_INP_REGS]                       inp_pipe_aux_q;
@@ -192,6 +195,7 @@ module fpnew_sdotp_multi #(
   assign inp_pipe_op_q[0]           = op_i;
   assign inp_pipe_op_mod_q[0]       = op_mod_i;
   assign inp_pipe_src_fmt_q[0]      = src_fmt_i;
+  assign inp_pipe_src2_fmt_q[0]     = src2_fmt_i;
   assign inp_pipe_dst_fmt_q[0]      = dst_fmt_i;
   assign inp_pipe_tag_q[0]          = tag_i;
   assign inp_pipe_aux_q[0]          = aux_i;
@@ -221,6 +225,7 @@ module fpnew_sdotp_multi #(
     `FFL(inp_pipe_op_q[i+1],           inp_pipe_op_q[i],           reg_ena, fpnew_pkg::SDOTP)
     `FFL(inp_pipe_op_mod_q[i+1],       inp_pipe_op_mod_q[i],       reg_ena, '0)
     `FFL(inp_pipe_src_fmt_q[i+1],      inp_pipe_src_fmt_q[i],      reg_ena, fpnew_pkg::FP8)
+    `FFL(inp_pipe_src2_fmt_q[i+1],     inp_pipe_src2_fmt_q[i],     reg_ena, fpnew_pkg::FP8)
     `FFL(inp_pipe_dst_fmt_q[i+1],      inp_pipe_dst_fmt_q[i],      reg_ena, fpnew_pkg::FP16)
     `FFL(inp_pipe_tag_q[i+1],          inp_pipe_tag_q[i],          reg_ena, TagType'('0))
     `FFL(inp_pipe_aux_q[i+1],          inp_pipe_aux_q[i],          reg_ena, AuxType'('0))
@@ -232,6 +237,7 @@ module fpnew_sdotp_multi #(
   assign operand_d_q    = inp_pipe_operand_d_q[NUM_INP_REGS];
   assign dst_operands_q = inp_pipe_dst_operands_q[NUM_INP_REGS];
   assign src_fmt_q      = inp_pipe_src_fmt_q[NUM_INP_REGS];
+  assign src2_fmt_q     = inp_pipe_src2_fmt_q[NUM_INP_REGS];
   assign dst_fmt_q      = inp_pipe_dst_fmt_q[NUM_INP_REGS];
 
   logic [3:0][SRC_WIDTH-1:0] operands_post_inp_pipe;
@@ -396,16 +402,16 @@ module fpnew_sdotp_multi #(
   always_comb begin : op_select
     // Default assignments - packing-order-agnostic
     operand_a = {fmt_sign[src_fmt_q][0], fmt_exponent[src_fmt_q][0], fmt_mantissa[src_fmt_q][0]};
-    operand_b = {fmt_sign[src_fmt_q][1], fmt_exponent[src_fmt_q][1], fmt_mantissa[src_fmt_q][1]};
+    operand_b = {fmt_sign[src2_fmt_q][1], fmt_exponent[src2_fmt_q][1], fmt_mantissa[src2_fmt_q][1]};
     operand_c = {fmt_sign[src_fmt_q][2], fmt_exponent[src_fmt_q][2], fmt_mantissa[src_fmt_q][2]};
-    operand_d = {fmt_sign[src_fmt_q][3], fmt_exponent[src_fmt_q][3], fmt_mantissa[src_fmt_q][3]};
+    operand_d = {fmt_sign[src2_fmt_q][3], fmt_exponent[src2_fmt_q][3], fmt_mantissa[src2_fmt_q][3]};
     operand_e = {fmt_dst_sign[dst_fmt_q], fmt_dst_exponent[dst_fmt_q], fmt_dst_mantissa[dst_fmt_q]};
     operand_a_vsum = {fmt_vsum_sign[src_fmt_q][0], fmt_vsum_exponent[src_fmt_q][0], fmt_vsum_mantissa[src_fmt_q][0]};
-    operand_c_vsum = {fmt_vsum_sign[src_fmt_q][1], fmt_vsum_exponent[src_fmt_q][1], fmt_vsum_mantissa[src_fmt_q][1]};
+    operand_c_vsum = {fmt_vsum_sign[src2_fmt_q][1], fmt_vsum_exponent[src2_fmt_q][1], fmt_vsum_mantissa[src2_fmt_q][1]};
     info_a    = info_q[src_fmt_q][0];
-    info_b    = info_q[src_fmt_q][1];
+    info_b    = info_q[src2_fmt_q][1];
     info_c    = info_q[src_fmt_q][2];
-    info_d    = info_q[src_fmt_q][3];
+    info_d    = info_q[src2_fmt_q][3];
     info_e    = info_q[dst_fmt_q][4];
 
     // op_mod_q inverts sign of operand A and C, thus inverting the sign of the dot product
@@ -419,19 +425,19 @@ module fpnew_sdotp_multi #(
 
     unique case (inp_pipe_op_q[NUM_INP_REGS])
       fpnew_pkg::SDOTP:  ; // do nothing
-      fpnew_pkg::VSUM: begin // Set multiplicands coming from rs1 to +1
-        operand_b = '{sign: 1'b0, exponent: fpnew_pkg::bias(src_fmt_q), mantissa: '0};
+      fpnew_pkg::VSUM: begin // Set multiplicands coming from rs1 to +1 //TODO maybe change
+        operand_b = '{sign: 1'b0, exponent: fpnew_pkg::bias(src2_fmt_q), mantissa: '0};
         operand_d = '{sign: 1'b0, exponent: fpnew_pkg::bias(src_fmt_q), mantissa: '0};
         info_b    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
         info_d    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
-        info_a    = info_vsum_q[dst_fmt_q][0];
-        info_c    = info_vsum_q[dst_fmt_q][1];
+        info_a    = info_vsum_q[src_fmt_q][0];
+        info_c    = info_vsum_q[src2_fmt_q][1];
         a_sign    = operand_a_vsum.sign;
         c_sign    = operand_c_vsum.sign;
       end
-      fpnew_pkg::EXVSUM: begin // Set multiplicands coming from rs1 to +1
-        operand_b = '{sign: 1'b0, exponent: fpnew_pkg::bias(src_fmt_q), mantissa: '0};
-        operand_d = '{sign: 1'b0, exponent: fpnew_pkg::bias(src_fmt_q), mantissa: '0};
+      fpnew_pkg::EXVSUM: begin // Set multiplicands coming from rs1 to +1 //TODO change
+        operand_b = '{sign: 1'b0, exponent: fpnew_pkg::bias(src2_fmt_q), mantissa: '0};
+        operand_d = '{sign: 1'b0, exponent: fpnew_pkg::bias(src2_fmt_q), mantissa: '0};
         info_b    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
         info_d    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
       end
@@ -582,19 +588,27 @@ module fpnew_sdotp_multi #(
                               ? 2 - signed'(fpnew_pkg::bias(dst_fmt_q)) // in case the product is zero, set minimum exp.
                               : signed'(exponent_c + info_c.is_subnormal
                                         + exponent_d + info_d.is_subnormal
-                                        - 2*signed'(fpnew_pkg::bias(src_fmt_q))  // rebias for dst fmt
+                                        - signed'(fpnew_pkg::bias(src_fmt_q))  // rebias for dst fmt
+                                        - signed'(fpnew_pkg::bias(src2_fmt_q))
                                         + signed'(fpnew_pkg::bias(dst_fmt_q)) + 1); // adding +1 to keep into account following shifts
   assign exponent_product_x = (info_a.is_zero || info_b.is_zero)
                               ? 2 - signed'(fpnew_pkg::bias(dst_fmt_q)) // in case the product is zero, set minimum exp.
                               : signed'(exponent_a + info_a.is_subnormal
                                         + exponent_b + info_b.is_subnormal
-                                        - 2*signed'(fpnew_pkg::bias(src_fmt_q))  // rebias for dst fmt
+                                        - signed'(fpnew_pkg::bias(src_fmt_q))  // rebias for dst fmt
+                                        - signed'(fpnew_pkg::bias(src2_fmt_q))  
                                         + signed'(fpnew_pkg::bias(dst_fmt_q)) + 1); // adding +1 to keep into account following shift
   assign exponent_addend_y = (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::VSUM)
-                             ? signed'(exponent_c_vsum + $signed({1'b0, ~info_c.is_normal}))
+                             ? signed'(exponent_c_vsum
+                                       - signed'(fpnew_pkg::bias(src2_fmt_q))
+                                       + signed'(fpnew_pkg::bias(dst_fmt_q))
+                                       + $signed({1'b0, ~info_c.is_normal}))
                              : exponent_product_y;
   assign exponent_addend_x = (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::VSUM)
-                             ? signed'(exponent_a_vsum + $signed({1'b0, ~info_a.is_normal}))
+                             ? signed'(exponent_a_vsum
+                                       - signed'(fpnew_pkg::bias(src_fmt_q))
+                                       + signed'(fpnew_pkg::bias(dst_fmt_q))
+                                       + $signed({1'b0, ~info_a.is_normal}))
                              : exponent_product_x;
   assign exponent_addend_z = signed'(exponent_e + $signed({1'b0, ~info_e.is_normal})); // 0 as subnorm
 

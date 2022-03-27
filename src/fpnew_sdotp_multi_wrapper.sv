@@ -42,6 +42,7 @@ module fpnew_sdotp_multi_wrapper #(
   input fpnew_pkg::operation_e         op_i,
   input logic                          op_mod_i,
   input fpnew_pkg::fp_format_e         src_fmt_i,
+  input fpnew_pkg::fp_format_e         src2_fmt_i,
   input fpnew_pkg::fp_format_e         dst_fmt_i,
   input TagType                        tag_i,
   input AuxType                        aux_i,
@@ -159,8 +160,9 @@ module fpnew_sdotp_multi_wrapper #(
     .rnd_mode_i,
     .op_i,
     .op_mod_i,
-    .src_fmt_i, // format of the multiplicands
-    .dst_fmt_i, // format of the addend and result
+    .src_fmt_i,  // format of op_a, op_c
+    .src2_fmt_i, // format of op_b, op_d
+    .dst_fmt_i,  // format of the accumulator (dst_op) and result
     .tag_i,
     .aux_i,
     .in_valid_i,

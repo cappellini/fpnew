@@ -407,7 +407,7 @@ module fpnew_sdotp_multi #(
     operand_d = {fmt_sign[src2_fmt_q][3], fmt_exponent[src2_fmt_q][3], fmt_mantissa[src2_fmt_q][3]};
     operand_e = {fmt_dst_sign[dst_fmt_q], fmt_dst_exponent[dst_fmt_q], fmt_dst_mantissa[dst_fmt_q]};
     operand_a_vsum = {fmt_vsum_sign[src_fmt_q][0], fmt_vsum_exponent[src_fmt_q][0], fmt_vsum_mantissa[src_fmt_q][0]};
-    operand_c_vsum = {fmt_vsum_sign[src2_fmt_q][1], fmt_vsum_exponent[src2_fmt_q][1], fmt_vsum_mantissa[src2_fmt_q][1]};
+    operand_c_vsum = {fmt_vsum_sign[src_fmt_q][1], fmt_vsum_exponent[src_fmt_q][1], fmt_vsum_mantissa[src_fmt_q][1]};
     info_a    = info_q[src_fmt_q][0];
     info_b    = info_q[src2_fmt_q][1];
     info_c    = info_q[src_fmt_q][2];
@@ -425,13 +425,13 @@ module fpnew_sdotp_multi #(
 
     unique case (inp_pipe_op_q[NUM_INP_REGS])
       fpnew_pkg::SDOTP:  ; // do nothing
-      fpnew_pkg::VSUM: begin // Set multiplicands coming from rs1 to +1 //TODO maybe change
-        operand_b = '{sign: 1'b0, exponent: fpnew_pkg::bias(src2_fmt_q), mantissa: '0};
+      fpnew_pkg::VSUM: begin // Set multiplicands coming from rs1 to +1
+        operand_b = '{sign: 1'b0, exponent: fpnew_pkg::bias(src_fmt_q), mantissa: '0};
         operand_d = '{sign: 1'b0, exponent: fpnew_pkg::bias(src_fmt_q), mantissa: '0};
         info_b    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
         info_d    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
         info_a    = info_vsum_q[src_fmt_q][0];
-        info_c    = info_vsum_q[src2_fmt_q][1];
+        info_c    = info_vsum_q[src_fmt_q][1];
         a_sign    = operand_a_vsum.sign;
         c_sign    = operand_c_vsum.sign;
       end
@@ -599,16 +599,10 @@ module fpnew_sdotp_multi #(
                                         - signed'(fpnew_pkg::bias(src2_fmt_q))  
                                         + signed'(fpnew_pkg::bias(dst_fmt_q)) + 1); // adding +1 to keep into account following shift
   assign exponent_addend_y = (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::VSUM)
-                             ? signed'(exponent_c_vsum
-                                       - signed'(fpnew_pkg::bias(src2_fmt_q))
-                                       + signed'(fpnew_pkg::bias(dst_fmt_q))
-                                       + $signed({1'b0, ~info_c.is_normal}))
+                             ? signed'(exponent_c_vsum + $signed({1'b0, ~info_c.is_normal}))
                              : exponent_product_y;
   assign exponent_addend_x = (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::VSUM)
-                             ? signed'(exponent_a_vsum
-                                       - signed'(fpnew_pkg::bias(src_fmt_q))
-                                       + signed'(fpnew_pkg::bias(dst_fmt_q))
-                                       + $signed({1'b0, ~info_a.is_normal}))
+                             ? signed'(exponent_a_vsum + $signed({1'b0, ~info_a.is_normal}))
                              : exponent_product_x;
   assign exponent_addend_z = signed'(exponent_e + $signed({1'b0, ~info_e.is_normal})); // 0 as subnorm
 

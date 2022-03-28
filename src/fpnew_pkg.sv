@@ -503,11 +503,11 @@ package fpnew_pkg;
   function automatic fmt_logic_t get_dotp_dst_fmts(fmt_logic_t cfg, fmt_logic_t src_cfg);
     automatic fmt_logic_t res;
     res = { cfg[FP32] && (src_cfg[FP16] || src_cfg[FP16ALT]), 
-            1'b0,                              //FP64 not supported as dstFmt
+            1'b0,                                               //FP64 not supported as dstFmt
             cfg[FP16] && (src_cfg[FP8] || src_cfg[FP8ALT]),   
-            1'b0,                              //FP8 not supported as dstFmt
+            cfg[FP8],                                           //FP8 supported as dstFmt for VSUM
             cfg[FP16ALT] && (src_cfg[FP8] || src_cfg[FP8ALT]),   
-            1'b0                               //FP8ALT not supported as dstFmt
+            cfg[FP8ALT]                                         //FP8ALT supported as dstFmt for VSUM
     };
     return res;
   endfunction

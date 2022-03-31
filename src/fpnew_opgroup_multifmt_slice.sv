@@ -190,7 +190,17 @@ module fpnew_opgroup_multifmt_slice #(
 
         if (OpGroup == fpnew_pkg::DOTP) begin
           for (int unsigned i = 0; i < NUM_OPERANDS; i++) begin
-            local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i); // expanded format is twice the width of src_fmt
+            if(op_i != fpnew_pkg::VSUM) begin
+              local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i); // expanded format is twice the width of src_fmt
+            end else begin
+              if(LANE % 2 == 0) begin
+                local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i);
+              end else begin
+                if(i == 0) local_operands[0] = operands_i[1] >> (LANE-1)*2*fpnew_pkg::fp_width(src_fmt_i);
+                if(i == 1) local_operands[1] = '1; //operand[1] isn't used for VSUM
+                if(i == 2) local_operands[2] = operands_i[2] >> LANE*fpnew_pkg::fp_width(src_fmt_i);
+              end
+            end
           end
         end else if (OpGroup == fpnew_pkg::CONV) begin // override operand 0 for some conversions
           // Source is an integer
@@ -499,19 +509,8 @@ module fpnew_opgroup_multifmt_slice #(
   // ------------
   assign {result_is_cpk, result_fmt_is_int, result_is_vector, result_fmt, result_is_vsum} = lane_aux[0];
 
-
-  //TODO clean up
-  logic needs_nan_boxing;
-
-  assign needs_nan_boxing = fpnew_pkg::fp_width(fpnew_pkg::fp_format_e'(result_fmt)) != Width;
-
-  assign result_vsum = needs_nan_boxing ? {{(Width/2){1'b1}}, fmt_slice_result[result_fmt][Width/2-1:0]} :
-                                          fmt_slice_result[result_fmt];
-
-
   assign result_o = result_fmt_is_int ? ifmt_slice_result[result_fmt]                   :
                     result_is_cpk     ? fmt_conv_cpk_result[result_fmt][result_vec_op]  :
-                    result_is_vsum    ? result_vsum :
                                         fmt_slice_result[result_fmt];
 
 

@@ -271,7 +271,7 @@ module fpnew_opgroup_multifmt_slice #(
           .op_i,
           .op_mod_i,
           .ac_fmt_i         ( src_fmt_i          ),
-          .bf_fmt_i         ( src2_fmt_i         ),
+          .bd_fmt_i         ( src2_fmt_i         ),
           .dst_fmt_i,
           .tag_i,
           .aux_i           ( aux_data            ),

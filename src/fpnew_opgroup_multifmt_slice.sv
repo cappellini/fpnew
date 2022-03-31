@@ -191,7 +191,7 @@ module fpnew_opgroup_multifmt_slice #(
         if (OpGroup == fpnew_pkg::DOTP) begin
           for (int unsigned i = 0; i < NUM_OPERANDS; i++) begin
             if(op_i != fpnew_pkg::VSUM) begin
-              local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i); // expanded format is twice the width of src_fmt
+              local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(dst_fmt_i); // expanded format is twice the width of src_fmt
             end else begin
               if(LANE % 2 == 0) begin
                 local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i);
@@ -237,8 +237,8 @@ module fpnew_opgroup_multifmt_slice #(
           .rnd_mode_i,
           .op_i,
           .op_mod_i,
-          .src_fmt_i,
-          .src2_fmt_i,
+          .a_fmt_i         ( src_fmt_i           ),
+          .b_fmt_i         ( src2_fmt_i          ),
           .dst_fmt_i,
           .tag_i,
           .aux_i           ( aux_data            ),
@@ -270,8 +270,8 @@ module fpnew_opgroup_multifmt_slice #(
           .rnd_mode_i,
           .op_i,
           .op_mod_i,
-          .src_fmt_i,
-          .src2_fmt_i,
+          .ac_fmt_i         ( src_fmt_i          ),
+          .bf_fmt_i         ( src2_fmt_i         ),
           .dst_fmt_i,
           .tag_i,
           .aux_i           ( aux_data            ),

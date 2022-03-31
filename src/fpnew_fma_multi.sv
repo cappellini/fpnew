@@ -33,9 +33,9 @@ module fpnew_fma_multi #(
   input  fpnew_pkg::roundmode_e       rnd_mode_i,
   input  fpnew_pkg::operation_e       op_i,
   input  logic                        op_mod_i,
-  input  fpnew_pkg::fp_format_e       src_fmt_i,   // format of the multiplier   (operands_i[1])
-  input  fpnew_pkg::fp_format_e       src2_fmt_i,  // format of the multiplicand (operands_i[0])
-  input  fpnew_pkg::fp_format_e       dst_fmt_i,   // format of the addend and result
+  input  fpnew_pkg::fp_format_e       a_fmt_i,   // format of the multiplicand (operands_i[0] / operand_a)
+  input  fpnew_pkg::fp_format_e       b_fmt_i,   // format of the multiplier   (operands_i[1] / operand_b)
+  input  fpnew_pkg::fp_format_e       dst_fmt_i, // format of the addend (operands_i[2] / operand_c) and result
   input  TagType                      tag_i,
   input  AuxType                      aux_i,
   // Input Handshake
@@ -106,8 +106,8 @@ module fpnew_fma_multi #(
   // ---------------
   // Selected pipeline output signals as non-arrays
   logic [2:0][WIDTH-1:0] operands_q;
-  fpnew_pkg::fp_format_e src_fmt_q;
-  fpnew_pkg::fp_format_e src2_fmt_q;
+  fpnew_pkg::fp_format_e a_fmt_q;
+  fpnew_pkg::fp_format_e b_fmt_q;
   fpnew_pkg::fp_format_e dst_fmt_q;
 
   // Input pipeline signals, index i holds signal after i register stages
@@ -116,8 +116,8 @@ module fpnew_fma_multi #(
   fpnew_pkg::roundmode_e [0:NUM_INP_REGS]                       inp_pipe_rnd_mode_q;
   fpnew_pkg::operation_e [0:NUM_INP_REGS]                       inp_pipe_op_q;
   logic                  [0:NUM_INP_REGS]                       inp_pipe_op_mod_q;
-  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_src_fmt_q;
-  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_src2_fmt_q;
+  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_a_fmt_q;
+  fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_b_fmt_q;
   fpnew_pkg::fp_format_e [0:NUM_INP_REGS]                       inp_pipe_dst_fmt_q;
   TagType                [0:NUM_INP_REGS]                       inp_pipe_tag_q;
   AuxType                [0:NUM_INP_REGS]                       inp_pipe_aux_q;
@@ -131,8 +131,8 @@ module fpnew_fma_multi #(
   assign inp_pipe_rnd_mode_q[0] = rnd_mode_i;
   assign inp_pipe_op_q[0]       = op_i;
   assign inp_pipe_op_mod_q[0]   = op_mod_i;
-  assign inp_pipe_src_fmt_q[0]  = src_fmt_i;
-  assign inp_pipe_src2_fmt_q[0] = src2_fmt_i;
+  assign inp_pipe_a_fmt_q[0]    = a_fmt_i;
+  assign inp_pipe_b_fmt_q[0]    = b_fmt_i;
   assign inp_pipe_dst_fmt_q[0]  = dst_fmt_i;
   assign inp_pipe_tag_q[0]      = tag_i;
   assign inp_pipe_aux_q[0]      = aux_i;
@@ -157,16 +157,16 @@ module fpnew_fma_multi #(
     `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
     `FFL(inp_pipe_op_q[i+1],       inp_pipe_op_q[i],       reg_ena, fpnew_pkg::FMADD)
     `FFL(inp_pipe_op_mod_q[i+1],   inp_pipe_op_mod_q[i],   reg_ena, '0)
-    `FFL(inp_pipe_src_fmt_q[i+1],  inp_pipe_src_fmt_q[i],  reg_ena, fpnew_pkg::fp_format_e'(0))
-    `FFL(inp_pipe_src2_fmt_q[i+1], inp_pipe_src2_fmt_q[i], reg_ena, fpnew_pkg::fp_format_e'(0))
+    `FFL(inp_pipe_a_fmt_q[i+1],    inp_pipe_a_fmt_q[i],    reg_ena, fpnew_pkg::fp_format_e'(0))
+    `FFL(inp_pipe_b_fmt_q[i+1],    inp_pipe_b_fmt_q[i],    reg_ena, fpnew_pkg::fp_format_e'(0))
     `FFL(inp_pipe_dst_fmt_q[i+1],  inp_pipe_dst_fmt_q[i],  reg_ena, fpnew_pkg::fp_format_e'(0))
     `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
     `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
   end
   // Output stage: assign selected pipe outputs to signals for later use
   assign operands_q = inp_pipe_operands_q[NUM_INP_REGS];
-  assign src_fmt_q  = inp_pipe_src_fmt_q[NUM_INP_REGS];
-  assign src2_fmt_q = inp_pipe_src2_fmt_q[NUM_INP_REGS];
+  assign a_fmt_q    = inp_pipe_a_fmt_q[NUM_INP_REGS];
+  assign b_fmt_q    = inp_pipe_b_fmt_q[NUM_INP_REGS];
   assign dst_fmt_q  = inp_pipe_dst_fmt_q[NUM_INP_REGS];
 
   // -----------------
@@ -230,11 +230,11 @@ module fpnew_fma_multi #(
   always_comb begin : op_select
 
     // Default assignments - packing-order-agnostic
-    operand_a = {fmt_sign[src2_fmt_q][0], fmt_exponent[src2_fmt_q][0], fmt_mantissa[src2_fmt_q][0]};
-    operand_b = {fmt_sign[src_fmt_q][1], fmt_exponent[src_fmt_q][1], fmt_mantissa[src_fmt_q][1]};
+    operand_a = {fmt_sign[a_fmt_q][0],   fmt_exponent[a_fmt_q][0],   fmt_mantissa[a_fmt_q][0]};
+    operand_b = {fmt_sign[b_fmt_q][1],   fmt_exponent[b_fmt_q][1],   fmt_mantissa[b_fmt_q][1]};
     operand_c = {fmt_sign[dst_fmt_q][2], fmt_exponent[dst_fmt_q][2], fmt_mantissa[dst_fmt_q][2]};
-    info_a    = info_q[src2_fmt_q][0];
-    info_b    = info_q[src_fmt_q][1];
+    info_a    = info_q[a_fmt_q][0];
+    info_b    = info_q[b_fmt_q][1];
     info_c    = info_q[dst_fmt_q][2];
 
     // op_mod_q inverts sign of operand C
@@ -244,7 +244,7 @@ module fpnew_fma_multi #(
       fpnew_pkg::FMADD:  ; // do nothing
       fpnew_pkg::FNMSUB: operand_a.sign = ~operand_a.sign; // invert sign of product
       fpnew_pkg::ADD: begin // Set multiplicand to +1
-        operand_a = '{sign: 1'b0, exponent: fpnew_pkg::bias(src2_fmt_q), mantissa: '0};
+        operand_a = '{sign: 1'b0, exponent: fpnew_pkg::bias(a_fmt_q), mantissa: '0};
         info_a    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
       end
       fpnew_pkg::MUL: begin // Set addend to -0 (for proper rounding with RDN)
@@ -376,8 +376,8 @@ module fpnew_fma_multi #(
                             ? 2 - signed'(fpnew_pkg::bias(dst_fmt_q))
                             : signed'(exponent_a + info_a.is_subnormal
                                       + exponent_b + info_b.is_subnormal
-                                      - signed'(fpnew_pkg::bias(src_fmt_q))
-                                      - signed'(fpnew_pkg::bias(src2_fmt_q))
+                                      - signed'(fpnew_pkg::bias(a_fmt_q))
+                                      - signed'(fpnew_pkg::bias(b_fmt_q))
                                       + signed'(fpnew_pkg::bias(dst_fmt_q))); // rebias for dst fmt
   // Exponent difference is the addend exponent minus the product exponent
   assign exponent_difference = exponent_addend - exponent_product;

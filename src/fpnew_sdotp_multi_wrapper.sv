@@ -26,8 +26,8 @@ module fpnew_sdotp_multi_wrapper #(
   parameter type                     AuxType     = logic,
 
   // Do not change
-  localparam fpnew_pkg::fmt_logic_t FpSrcFmtConfig = FpFmtConfig[0] ? (FpFmtConfig & 6'b001111) : (FpFmtConfig & 6'b000101),
-  localparam fpnew_pkg::fmt_logic_t FpDstFmtConfig = fpnew_pkg::get_dotp_dst_fmts(FpFmtConfig, FpSrcFmtConfig),
+  localparam fpnew_pkg::fmt_logic_t  FpSrcFmtConfig = FpFmtConfig[0] ? (FpFmtConfig & 6'b001111) : (FpFmtConfig & 6'b000101),
+  localparam fpnew_pkg::fmt_logic_t  FpDstFmtConfig = fpnew_pkg::get_dotp_dst_fmts(FpFmtConfig, FpSrcFmtConfig),
   localparam int                     SRC_WIDTH     = fpnew_pkg::max_fp_width(FpSrcFmtConfig),
   localparam int                     DST_WIDTH     = 2*fpnew_pkg::max_fp_width(FpSrcFmtConfig), // do not change, current assumption of sdotpex_multi
   localparam int                     OPERAND_WIDTH = LaneWidth,
@@ -41,9 +41,9 @@ module fpnew_sdotp_multi_wrapper #(
   input fpnew_pkg::roundmode_e         rnd_mode_i,
   input fpnew_pkg::operation_e         op_i,
   input logic                          op_mod_i,
-  input fpnew_pkg::fp_format_e         src_fmt_i,
-  input fpnew_pkg::fp_format_e         src2_fmt_i,
-  input fpnew_pkg::fp_format_e         dst_fmt_i,
+  input fpnew_pkg::fp_format_e         ac_fmt_i,   // format of op_a, op_c
+  input fpnew_pkg::fp_format_e         bd_fmt_i,   // format of op_b, op_d
+  input fpnew_pkg::fp_format_e         dst_fmt_i,  // format of the accumulator (op_e) and result
   input TagType                        tag_i,
   input AuxType                        aux_i,
   // Input Handshake
@@ -137,13 +137,13 @@ module fpnew_sdotp_multi_wrapper #(
         local_is_boxed[fmt][3] = '1;
       end
       // for dst format sized operand keep is_boxed input
-      local_is_boxed[fmt][4] = is_boxed_i[src_fmt_i][2];
+      local_is_boxed[fmt][4] = is_boxed_i[ac_fmt_i][2]; //TODO check correct format here
     end
   end
 
   fpnew_sdotp_multi #(
-    .SrcDotpFpFmtConfig ( FpSrcFmtConfig ), // FP8, FP8ALT, FP16, FP16ALT
-    .DstDotpFpFmtConfig ( FpDstFmtConfig ), // FP32, FP16, FP16ALT
+    .SrcDotpFpFmtConfig ( FpSrcFmtConfig ), // Can only be: FP16, FP16ALT, FP8, FP8ALT
+    .DstDotpFpFmtConfig ( FpDstFmtConfig ), // Can only be: FP32, FP16, FP16ALT, FP8, FP8ALT
     .NumPipeRegs        ( NumPipeRegs    ),
     .PipeConfig         ( PipeConfig     ),
     .TagType            ( TagType        ),
@@ -151,17 +151,17 @@ module fpnew_sdotp_multi_wrapper #(
   ) i_fpnew_sdotp_multi (
     .clk_i,
     .rst_ni,
-    .operand_a_i     ( local_src_fmt_operand_a[src_fmt_i] ),
-    .operand_b_i     ( local_src_fmt_operand_b[src_fmt_i] ),
-    .operand_c_i     ( local_src_fmt_operand_c[src_fmt_i] ),
-    .operand_d_i     ( local_src_fmt_operand_d[src_fmt_i] ),
-    .dst_operands_i  ( local_dst_fmt_operands             ), // 1 operand
-    .is_boxed_i      ( local_is_boxed                     ),
+    .operand_a_i     ( local_src_fmt_operand_a[ac_fmt_i] ),
+    .operand_b_i     ( local_src_fmt_operand_b[bd_fmt_i] ),
+    .operand_c_i     ( local_src_fmt_operand_c[ac_fmt_i] ),
+    .operand_d_i     ( local_src_fmt_operand_d[bd_fmt_i] ),
+    .dst_operands_i  ( local_dst_fmt_operands            ), // 1 operand
+    .is_boxed_i      ( local_is_boxed                    ),
     .rnd_mode_i,
     .op_i,
     .op_mod_i,
-    .src_fmt_i,  // format of op_a, op_c
-    .src2_fmt_i, // format of op_b, op_d
+    .ac_fmt_i,   // format of op_a, op_c
+    .bd_fmt_i,   // format of op_b, op_d
     .dst_fmt_i,  // format of the accumulator (dst_op) and result
     .tag_i,
     .aux_i,

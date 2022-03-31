@@ -465,6 +465,7 @@ module fpnew_sdotp_multi #(
   // Reduction for special case handling
   assign any_operand_inf = (| {info_a.is_inf, info_b.is_inf, info_c.is_inf, info_d.is_inf, info_e.is_inf});
   assign any_operand_nan = (| {info_a.is_nan, info_b.is_nan, info_c.is_nan, info_d.is_nan, info_e.is_nan});
+  assign all_operands_ones = &operands_post_inp_pipe;
   assign signalling_nan  = (| {info_a.is_signalling, info_b.is_signalling, info_c.is_signalling,
                                info_d.is_signalling, info_e.is_signalling});
   // Effective subtractions in the three-term addition
@@ -511,6 +512,10 @@ module fpnew_sdotp_multi #(
           fmt_result_is_special[fmt] = 1'b1; // bypass DOTP, output is the canonical qNaN
           fmt_special_status[fmt].NV = 1'b1; // invalid operation
         // NaN Inputs cause canonical quiet NaN at the output and maybe invalid OP
+        end else if (all_operands_ones) begin
+           fmt_result_is_special[fmt] = 1'b1;
+           special_res                =   '1;
+           //other flags?
         end else if (any_operand_nan) begin
           fmt_result_is_special[fmt] = 1'b1;           // bypass DOTP, output is the canonical qNaN
           fmt_special_status[fmt].NV = signalling_nan; // raise the invalid operation flag if signalling

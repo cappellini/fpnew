@@ -267,7 +267,6 @@ module fpnew_fma_multi #(
   // ---------------------
   logic any_operand_inf;
   logic any_operand_nan;
-  logic operands_all_ones;
   logic signalling_nan;
   logic effective_subtraction;
   logic tentative_sign;
@@ -275,9 +274,6 @@ module fpnew_fma_multi #(
   // Reduction for special case handling
   assign any_operand_inf = (| {info_a.is_inf,        info_b.is_inf,        info_c.is_inf});
   assign any_operand_nan = (| {info_a.is_nan,        info_b.is_nan,        info_c.is_nan});
-  assign all_operands_ones = &operands_q[1]                                                         //operand_b is always used
-                           & (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::ADD | (&operands_q[0]))     //either ADD or operand_a all ones
-                           & (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::MUL | (&operands_q[2]));    //either MUL or operand_c all ones
   assign signalling_nan  = (| {info_a.is_signalling, info_b.is_signalling, info_c.is_signalling});
   // Effective subtraction in FMA occurs when product and addend signs differ
   assign effective_subtraction = operand_a.sign ^ operand_b.sign ^ operand_c.sign;
@@ -323,10 +319,6 @@ module fpnew_fma_multi #(
           fmt_result_is_special[fmt] = 1'b1; // bypass FMA, output is the canonical qNaN
           fmt_special_status[fmt].NV = 1'b1; // invalid operation
         // NaN Inputs cause canonical quiet NaN at the output and maybe invalid OP
-        end else if (all_operands_ones) begin
-           fmt_result_is_special[fmt] = 1'b1;
-           special_res                =   '1;
-           //other flags?
         end else if (any_operand_nan) begin
           fmt_result_is_special[fmt] = 1'b1;           // bypass FMA, output is the canonical qNaN
           fmt_special_status[fmt].NV = signalling_nan; // raise the invalid operation flag if signalling

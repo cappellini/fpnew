@@ -137,7 +137,7 @@ module fpnew_sdotp_multi_wrapper #(
         local_is_boxed[fmt][3] = '1;
       end
       // for dst format sized operand keep is_boxed input
-      local_is_boxed[fmt][4] = is_boxed_i[ac_fmt_i][2]; //TODO check correct format here
+      local_is_boxed[fmt][4] = is_boxed_i[dst_fmt_i][2];
     end
   end
 

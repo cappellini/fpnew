@@ -185,7 +185,7 @@ module fpnew_opgroup_multifmt_slice #(
       // Slice out the operands for this lane, upper bits are ignored in the unit
       always_comb begin : prepare_input
         for (int unsigned i = 0; i < NUM_OPERANDS; i++) begin
-          local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(src_fmt_i);
+          local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(dst_fmt_i);
         end
 
         if (OpGroup == fpnew_pkg::DOTP) begin
@@ -193,7 +193,7 @@ module fpnew_opgroup_multifmt_slice #(
             if(op_i != fpnew_pkg::VSUM) begin
               local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(dst_fmt_i); // expanded format is twice the width of src_fmt
             end else begin
-              if(LANE % 2 == 0) begin
+              if(LANE % 2 == 0 || fpnew_pkg::fp_width(src_fmt_i) == 8) begin
                 local_operands[i] = operands_i[i] >> LANE*2*fpnew_pkg::fp_width(src_fmt_i);
               end else begin
                 if(i == 0) local_operands[0] = operands_i[1] >> (LANE-1)*2*fpnew_pkg::fp_width(src_fmt_i);

@@ -600,9 +600,13 @@ module fpnew_sdotp_multi #(
                                         + signed'(fpnew_pkg::bias(dst_fmt_q)) + 1); // adding +1 to keep into account following shift
   assign exponent_addend_y = (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::VSUM)
                              ? signed'(exponent_c_vsum + $signed({1'b0, ~info_c.is_normal}))
+                             - signed'(fpnew_pkg::bias(ac_fmt_q))  
+                             + signed'(fpnew_pkg::bias(dst_fmt_q))
                              : exponent_product_y;
   assign exponent_addend_x = (inp_pipe_op_q[NUM_INP_REGS] == fpnew_pkg::VSUM)
                              ? signed'(exponent_a_vsum + $signed({1'b0, ~info_a.is_normal}))
+                             - signed'(fpnew_pkg::bias(ac_fmt_q))  
+                             + signed'(fpnew_pkg::bias(dst_fmt_q))
                              : exponent_product_x;
   assign exponent_addend_z = signed'(exponent_e + $signed({1'b0, ~info_e.is_normal})); // 0 as subnorm
 

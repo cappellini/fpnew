@@ -185,7 +185,13 @@ module fpnew_opgroup_multifmt_slice #(
       // Slice out the operands for this lane, upper bits are ignored in the unit
       always_comb begin : prepare_input
         for (int unsigned i = 0; i < NUM_OPERANDS; i++) begin
-          local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(dst_fmt_i);
+          local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(src_fmt_i);
+        end
+
+        if (OpGroup == fpnew_pkg::ADDMUL) begin
+          for (int unsigned i = 0; i < NUM_OPERANDS; i++) begin
+            local_operands[i] = operands_i[i] >> LANE*fpnew_pkg::fp_width(dst_fmt_i);
+          end
         end
 
         if (OpGroup == fpnew_pkg::DOTP) begin
@@ -237,8 +243,8 @@ module fpnew_opgroup_multifmt_slice #(
           .rnd_mode_i,
           .op_i,
           .op_mod_i,
-          .a_fmt_i         ( src_fmt_i           ),
-          .b_fmt_i         ( src2_fmt_i          ),
+          .a_fmt_i         ( src2_fmt_i          ), 
+          .b_fmt_i         ( src_fmt_i           ), // format are swapped because operand_a isn't used for ADD
           .dst_fmt_i,
           .tag_i,
           .aux_i           ( aux_data            ),

@@ -430,8 +430,8 @@ module fpnew_sdotp_multi #(
         operand_d = '{sign: 1'b0, exponent: fpnew_pkg::bias(bd_fmt_q), mantissa: '0};
         info_b    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
         info_d    = '{is_normal: 1'b1, is_boxed: 1'b1, default: 1'b0}; //normal, boxed value.
-        info_a    = info_vsum_q[dst_fmt_q][0];
-        info_c    = info_vsum_q[dst_fmt_q][1];
+        info_a    = info_vsum_q[ac_fmt_q][0];
+        info_c    = info_vsum_q[ac_fmt_q][1];
         a_sign    = operand_a_vsum.sign;
         c_sign    = operand_c_vsum.sign;
       end

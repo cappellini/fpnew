@@ -154,8 +154,9 @@ package fpnew_pkg;
 
   // CSR encoded alternate fp formats
   typedef struct packed {
-    logic src; // Source format selection
-    logic dst; // Destination format selection
+    logic src;  // Source format selection
+    logic src2; // Second source format selection (for SDOTP and FMA)
+    logic dst;  // Destination format selection
   } fmt_mode_t;
 
   // Information about a floating point value

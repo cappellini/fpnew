@@ -21,7 +21,7 @@
 // 
 //
 // Example: (see also stimuli.txt)
-// VSUM__ 0 FP08 FP08 FP08 6aed7c0daed1ea3260236060 6aed7c56
+// VSUM_ 0 FP08 FP08 FP08 6aed7c0daed1ea3260236060 6aed7c56
 
 
 module tb_top #(
@@ -217,14 +217,12 @@ module tb_top #(
       $warning("Running in manual mode, no errors expected.");
       //Manual Mode starts here:
 
-      // FMADD 0 FP08 FP08 FP08 712deb1435f691449c27433b 71e1eb43
-
-      fpu_operands = 'h 2d2d2d2d__f6f6f6f6__27272727; // 71e1eb43 7165eb43
+      fpu_operands = 'h FF47FF6aFFFFFFFF6bf8fba6;
       fpu_op_mod = 1'b0;
-      fpu_operation = fpnew_pkg::FMADD;
+      fpu_operation = fpnew_pkg::VSUM;
       fpu_src_fmt   = fpnew_pkg::FP8;
       fpu_src2_fmt  = fpnew_pkg::FP8;
-      fpu_dst_fmt   = fpnew_pkg::FP8;
+      fpu_dst_fmt   = fpnew_pkg::FP8ALT;
 
       fpu_in_valid = 1'b1;
 
@@ -324,5 +322,3 @@ module tb_top #(
 endfunction
 
 endmodule  // tb_top
-
-
